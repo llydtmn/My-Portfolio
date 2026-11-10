@@ -1,135 +1,298 @@
 import { useEffect, useRef, useState } from 'react'
-import { legacyMarkup } from './legacyMarkup'
 import { supabase } from './supabase'
-import './app.css'
+import { SEC, FACTS, INT, EXP, SK, SOFT, ED, CERT, PJ, CT, ST, QA } from './data'
 
-const suggestions = ['What are his skills?', 'Tell me about his experience', 'How can I contact him?', 'Is he open to work?']
-const sectionIds = ['home', 'about', 'experience', 'skills', 'education', 'projects', 'contact']
+const SUGGESTIONS = ['What are his skills?', 'Tell me about his experience', 'How can I contact him?', 'Is he open to work?']
+const EMAIL = 'johntiman.08@gmail.com'
+
+const Html = ({ h }) => <span dangerouslySetInnerHTML={{ __html: h }} />
+const Tags = ({ a }) => <div className="chips">{a.map(t => <span key={t}>{t}</span>)}</div>
+const Arrow = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+const Sun = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+const Moon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
+
+function Entry({ x, i = 0, reveal = true }) {
+  const p = reveal ? { 'data-a': 'up', style: { '--d': `${i * 0.08}s` } } : {}
+  return (
+    <div className="card" {...p}>
+      <div className="hd"><div><h3>{x[0]}</h3><small>{x[1]}</small></div><span className={`dt${x[3] ? ' cu' : ''}`}>{x[2]}</span></div>
+      <p><Html h={x[4]} /></p>
+      <Tags a={x[5]} />
+    </div>
+  )
+}
+
+function Stat({ s }) {
+  const ref = useRef(null)
+  const [n, setN] = useState(s[0])
+  useEffect(() => {
+    const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches
+    let raf = 0
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      io.disconnect()
+      if (reduce) return
+      const t0 = performance.now()
+      const f = t => { const p = Math.min(1, (t - t0) / 1400); setN(Math.round(s[0] * (1 - Math.pow(1 - p, 3)))); if (p < 1) raf = requestAnimationFrame(f) }
+      raf = requestAnimationFrame(f)
+    }, { threshold: 0.5 })
+    io.observe(ref.current)
+    return () => { io.disconnect(); cancelAnimationFrame(raf) }
+  }, [s])
+  return <div ref={ref}><b>{n}{s[1]}</b><span>{s[2]}</span></div>
+}
 
 function ChatWidget() {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState([{ role: 'assistant', content: "👋 Hi! Si Llyd-Bot toh. Ask me anything about Lloyd's skills, experience, or how to get in touch!" }])
+  const [messages, setMessages] = useState([{ role: 'assistant', content: 'Hi! I’m Llyd-Bot. Ask me about John’s skills, experience or how to reach him.' }])
   const [loading, setLoading] = useState(false)
-  const bottomRef = useRef(null)
+  const bottom = useRef(null)
+  const field = useRef(null)
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, open])
+  useEffect(() => { if (bottom.current) bottom.current.scrollTop = bottom.current.scrollHeight }, [messages, loading, open])
+  useEffect(() => { if (open) field.current?.focus() }, [open])
+  useEffect(() => {
+    const esc = e => e.key === 'Escape' && setOpen(false)
+    addEventListener('keydown', esc)
+    return () => removeEventListener('keydown', esc)
+  }, [])
 
-  async function send(text = input) {
-    const question = text.trim()
-    if (!question || loading) return
-    setInput('')
-    const next = [...messages, { role: 'user', content: question }]
-    setMessages(next)
-    setLoading(true)
-    try {
-      if (!supabase) throw new Error('Add your Supabase URL and anon key to .env to enable the chatbot.')
-      const { data, error } = await supabase.functions.invoke('chat', { body: { messages: next.slice(-10) } })
-      if (error) throw error
-      setMessages(m => [...m, { role: 'assistant', content: data.reply }])
-    } catch (e) {
-      setMessages(m => [...m, { role: 'error', content: `⚠️ ${e.message || 'Unable to get a reply.'}` }])
-    } finally { setLoading(false) }
+  const offline = q => {
+    const hit = QA.find(a => a[0].test(q.toLowerCase()))
+    return hit ? hit[1] : 'I can answer questions about John’s skills, experience, education, projects and contact details. Try one of those.'
   }
 
-  return <>
-    <button id="chat-fab" aria-label="Open chat with Llyd-Bot" onClick={() => setOpen(v => !v)}><i className="fas fa-robot"/><span className="fab-badge"/></button>
-    <section id="chat-window" className={open ? 'open' : ''} role="dialog" aria-label="Llyd-Bot chat">
-      <div className="chat-header"><div className="avatar"><i className="fas fa-robot"/></div><div className="info"><strong>Llyd-Bot</strong><span><span className="status-dot"/>Ask about Lloyd</span></div><button id="chat-close" onClick={() => setOpen(false)} aria-label="Close chat"><i className="fas fa-times"/></button></div>
-      <div id="chat-messages">{messages.map((m,i) => <div key={i} className={`msg ${m.role === 'user' ? 'user' : m.role === 'error' ? 'error' : 'bot'}`}>{m.content}</div>)}{loading && <div className="msg bot typing-indicator"><span/><span/><span/></div>}<div ref={bottomRef}/></div>
-      {!messages.some(m => m.role === 'user') && <div className="suggestions">{suggestions.map(s => <button className="suggestion-btn" key={s} onClick={() => send(s)}>{s}</button>)}</div>}
-      <form className="chat-input-bar" onSubmit={e => { e.preventDefault(); send() }}><textarea id="chat-input" rows="1" maxLength="500" placeholder="Ask something…" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey){e.preventDefault();send()} }}/><button id="chat-send" aria-label="Send message" disabled={loading || !input.trim()}><i className="fas fa-paper-plane"/></button></form>
-    </section>
-  </>
+  async function send(text = input) {
+    const q = text.trim()
+    if (!q || loading) return
+    setInput('')
+    const next = [...messages, { role: 'user', content: q }]
+    setMessages(next)
+    setLoading(true)
+    let reply
+    try {
+      if (!supabase) throw new Error('no-supabase')
+      const { data, error } = await supabase.functions.invoke('chat', { body: { messages: next.slice(-10) } })
+      if (error) throw error
+      reply = data.reply
+    } catch {
+      reply = offline(q) // falls back to built-in answers if the function is unavailable
+    }
+    setMessages(m => [...m, { role: 'assistant', content: reply }])
+    setLoading(false)
+  }
+
+  return (
+    <>
+      <button id="fab" aria-label="Chat with Llyd-Bot" aria-expanded={open} onClick={() => setOpen(v => !v)}>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" /></svg>
+      </button>
+      <section id="cw" className={open ? 'open' : ''} role="dialog" aria-label="Llyd-Bot chat">
+        <div className="ch">Llyd-Bot<small>Ask about John’s skills and experience</small></div>
+        <div id="ms" ref={bottom} aria-live="polite">
+          {messages.map((m, i) => <div key={i} className={`m ${m.role === 'user' ? 'u' : 'b'}`}>{m.content}</div>)}
+          {loading && <div className="m b">…</div>}
+        </div>
+        {!messages.some(m => m.role === 'user') && (
+          <div className="sg">{SUGGESTIONS.map(s => <button type="button" key={s} onClick={() => send(s)}>{s}</button>)}</div>
+        )}
+        <form id="cf" onSubmit={e => { e.preventDefault(); send() }}>
+          <input ref={field} value={input} onChange={e => setInput(e.target.value)} placeholder="Ask something…" maxLength={500} aria-label="Your question" />
+          <button aria-label="Send" disabled={loading || !input.trim()}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg></button>
+        </form>
+      </section>
+    </>
+  )
+}
+
+function ContactForm() {
+  const [f, setF] = useState({ name: '', email: '', subject: '', message: '' })
+  const [note, setNote] = useState('')
+  const set = k => e => setF(v => ({ ...v, [k]: e.target.value }))
+  const mailto = () => { location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(f.subject)}&body=${encodeURIComponent(`${f.message}\n\n— ${f.name} (${f.email})`)}` }
+
+  async function submit(e) {
+    e.preventDefault()
+    const v = Object.fromEntries(Object.entries(f).map(([k, x]) => [k, x.trim()]))
+    if (!v.name || !v.email || !v.subject || !v.message) return setNote('Please complete all fields.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return setNote('Enter a valid email address.')
+    if (!supabase) { setNote('Opening your email app. Press send there to finish.'); return mailto() }
+    const { error } = await supabase.from('contact_messages').insert(v)
+    if (error) { setNote(`Could not send (${error.message}). Opening your email app instead.`); return mailto() }
+    setNote('Message sent. John will get back to you soon.')
+    setF({ name: '', email: '', subject: '', message: '' })
+  }
+
+  return (
+    <form className="card" data-a="right" onSubmit={submit} noValidate>
+      <h3>Send a message</h3>
+      <label htmlFor="n">Your name</label><input id="n" autoComplete="name" placeholder="e.g. Maria Santos" value={f.name} onChange={set('name')} required />
+      <label htmlFor="e">Email address</label><input id="e" type="email" autoComplete="email" placeholder="maria@example.com" value={f.email} onChange={set('email')} required />
+      <label htmlFor="s">Subject</label><input id="s" placeholder="Internship inquiry, project idea…" value={f.subject} onChange={set('subject')} required />
+      <label htmlFor="m">Message</label><textarea id="m" rows={4} placeholder="Tell me what you have in mind…" value={f.message} onChange={set('message')} required />
+      <div style={{ marginTop: 20 }}><button className="btn p" type="submit">Send message <Arrow /></button></div>
+      <div id="note" role="status" aria-live="polite">{note}</div>
+    </form>
+  )
 }
 
 export default function App() {
-  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
-  const [formNote, setFormNote] = useState('')
+  const [dark, setDark] = useState(() => {
+    const t = localStorage.getItem('theme')
+    return t ? t === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches
+  })
+  const [menu, setMenu] = useState(false)
+  const [active, setActive] = useState('')
+  const prog = useRef(null)
+  const tl = useRef(null)
 
   useEffect(() => {
-    document.body.classList.toggle('dark', dark)
-    document.querySelectorAll('#themeIcon').forEach(icon => {
-      icon.classList.toggle('fa-sun', dark)
-      icon.classList.toggle('fa-moon', !dark)
-    })
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light'
     localStorage.setItem('theme', dark ? 'dark' : 'light')
   }, [dark])
 
   useEffect(() => {
-    const root = document.getElementById('legacy-root')
-    const navLinks = [...root.querySelectorAll('.nav-item')]
-    const scrollToSection = (id) => {
-      const target = root.querySelector(`#${id}`)
-      if (!target) return
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      window.history.replaceState(null, '', `#${id}`)
-    }
+    const R = document.documentElement
+    R.classList.add('js')
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } }), { threshold: 0.15, rootMargin: '0px 0px -6% 0px' })
+    document.querySelectorAll('[data-a]').forEach(el => io.observe(el))
 
-    const click = (e) => {
-      const nav = e.target.closest('.nav-item')
-      if (nav) {
-        e.preventDefault()
-        scrollToSection(nav.dataset.page)
-        return
+    const spy = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) setActive(e.target.id) }), { rootMargin: '-45% 0px -50% 0px' })
+    document.querySelectorAll('main section').forEach(s => spy.observe(s))
+
+    let tick = false
+    const upd = () => {
+      tick = false
+      const h = R.scrollHeight - innerHeight
+      if (prog.current) prog.current.style.transform = `scaleX(${h > 0 ? scrollY / h : 0})`
+      const t = tl.current
+      if (t) {
+        const r = t.getBoundingClientRect()
+        t.style.setProperty('--p', Math.max(0, Math.min(1, (innerHeight * 0.6 - r.top) / r.height)))
+        t.querySelectorAll('article').forEach(a => a.classList.toggle('in', a.getBoundingClientRect().top < innerHeight * 0.6))
       }
-      const inline = e.target.closest('[onclick*="navigateTo"]')
-      if (inline) {
-        e.preventDefault()
-        const match = inline.getAttribute('onclick').match(/navigateTo\('([^']+)'\)/)
-        if (match) scrollToSection(match[1])
-      }
-      if (e.target.closest('#themeToggle')) setDark(v => !v)
-      if (e.target.closest('#sendMsgBtn')) submitContact()
     }
-
-    async function submitContact() {
-      const name = root.querySelector('#contact-name')?.value.trim()
-      const email = root.querySelector('#contact-email')?.value.trim()
-      const subject = root.querySelector('#contact-subject')?.value.trim()
-      const message = root.querySelector('#contact-message')?.value.trim()
-      if (!name || !email || !subject || !message) { setFormNote('Please complete all fields.'); return }
-      if (!supabase) { setFormNote('Configure Supabase in .env before sending messages.'); return }
-      const { error } = await supabase.from('contact_messages').insert({ name, email, subject, message })
-      setFormNote(error ? `Could not send: ${error.message}` : '✅ Message sent! John will get back to you soon.')
-      if (!error) ['#contact-name', '#contact-email', '#contact-subject', '#contact-message'].forEach(selector => {
-        const field = root.querySelector(selector)
-        if (field) field.value = ''
-      })
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries.filter(entry => entry.isIntersecting).sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0]
-      if (!visible) return
-      navLinks.forEach(link => {
-        const active = link.dataset.page === visible.target.id
-        link.classList.toggle('active', active)
-        if (active) link.setAttribute('aria-current', 'location')
-        else link.removeAttribute('aria-current')
-      })
-    }, { rootMargin: '-20% 0px -60% 0px', threshold: [0, 0.1, 0.25, 0.5] })
-
-    sectionIds.forEach(id => {
-      const section = root.querySelector(`#${id}`)
-      if (section) observer.observe(section)
-    })
-    root.addEventListener('click', click)
-
-    const hash = window.location.hash.slice(1)
-    if (sectionIds.includes(hash)) {
-      requestAnimationFrame(() => root.querySelector(`#${hash}`)?.scrollIntoView())
-    }
-
-    return () => {
-      root.removeEventListener('click', click)
-      observer.disconnect()
-    }
+    const onScroll = () => { if (!tick) { tick = true; requestAnimationFrame(upd) } }
+    addEventListener('scroll', onScroll, { passive: true })
+    const esc = e => e.key === 'Escape' && setMenu(false)
+    addEventListener('keydown', esc)
+    upd()
+    return () => { io.disconnect(); spy.disconnect(); removeEventListener('scroll', onScroll); removeEventListener('keydown', esc) }
   }, [])
 
-  useEffect(() => {
-    const note = document.getElementById('formNote')
-    if (note) note.textContent = formNote
-  }, [formNote])
+  return (
+    <>
+      <a className="skip" href="#main">Skip to content</a>
+      <header>
+        <div className="wrap bar">
+          <a className="logo" href="#home" aria-label="John Lloyd, home"><i>JL</i>Lloyd</a>
+          <nav id="nav" className={menu ? 'open' : ''} aria-label="Main">
+            <ul>{SEC.map(s => (
+              <li key={s}><a href={`#${s}`} className={active === s ? 'on' : ''} aria-current={active === s ? 'location' : undefined} onClick={() => setMenu(false)}>{s[0].toUpperCase() + s.slice(1)}</a></li>
+            ))}</ul>
+          </nav>
+          <button className="ib" aria-label="Switch colour theme" onClick={() => setDark(d => !d)}>{dark ? <Sun /> : <Moon />}</button>
+          <button className="ib" id="menu" aria-label="Open menu" aria-expanded={menu} aria-controls="nav" onClick={() => setMenu(m => !m)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+        </div>
+        <div id="prog" ref={prog} />
+      </header>
 
-  return <><div id="legacy-root" dangerouslySetInnerHTML={{ __html: legacyMarkup }} /><ChatWidget /></>
+      <main id="main">
+        <section className="hero" id="home"><div className="wrap hg"><div className="hi">
+          <span className="tag"><b />Open to opportunities</span>
+          <div className="sel"><h1>John Lloyd</h1><s /><s /><s /><s />
+            <div className="cur" aria-hidden="true"><svg width="20" height="22" viewBox="0 0 20 22" fill="currentColor"><path d="M1 1l17 8.5-7.2 2L8 19z" /></svg><span>UI/UX Designer</span></div>
+          </div>
+          <p className="role">IT Student &amp; UI/UX Designer</p>
+          <p className="lead">Building clean interfaces and solving real problems — one pixel at a time.</p>
+          <div className="acts">
+            <a className="btn p" href="#contact">Get in touch <Arrow /></a>
+            <a className="btn" href="#projects">View my work</a>
+          </div>
+          <div className="stats">{ST.map(s => <Stat key={s[2]} s={s} />)}</div>
+          </div>
+          <figure className="pf">
+            <img src={`${import.meta.env.BASE_URL}images/id.webp`} alt="Portrait of John Lloyd" width="720" height="720" fetchPriority="high" />
+          </figure>
+        </div></section>
+
+        <section className="s" id="about"><div className="wrap">
+          <h2 className="h2" data-a="up">The person behind the pixels</h2>
+          <div className="ab">
+            <div className="card big" data-a="left">
+              <h3>My story</h3>
+              <p>I’m a third-year Bachelor of Science in Information Technology student at <strong>Northwest Samar State University</strong>, with a solid foundation in programming, basic networking and troubleshooting.</p>
+              <p>I enjoy solving problems and building things, from simple websites to UI prototypes. I’m open to work and eager to contribute to meaningful projects.</p>
+              <p>Beyond the screen, I love traveling, reading and making the people around me laugh. My peers know me as a good listener and a natural leader.</p>
+            </div>
+            <div>
+              <div className="card" data-a="right"><h3>Quick facts</h3><ul className="facts">{FACTS.map(f => <li key={f[0]}><span>{f[0]}</span><span>{f[1]}</span></li>)}</ul></div>
+              <div className="card" data-a="right" style={{ '--d': '.12s' }}><h3>Interests</h3><Tags a={INT} /></div>
+            </div>
+          </div>
+        </div></section>
+
+        <section className="s" id="experience"><div className="wrap">
+          <h2 className="h2" data-a="up">Where I’ve put the work in</h2>
+          <div className="tl" ref={tl}>{EXP.map(x => <article key={x[0]} data-a="up"><Entry x={x} reveal={false} /></article>)}</div>
+        </div></section>
+
+        <section className="s" id="skills"><div className="wrap">
+          <h2 className="h2" data-a="up">Tools I reach for</h2>
+          <div className="sk">
+            {SK.map((g, i) => (
+              <div className="card" data-a="zoom" style={{ '--d': `${i * 0.1}s` }} key={g[0]}>
+                <h3>{g[0]}</h3>
+                {g[1].map((r, j) => (
+                  <div className="row" style={{ '--d': `${0.2 + j * 0.12}s` }} key={r[0]}>
+                    <span>{r[0]}</span><i style={{ '--w': `${r[1]}%` }} role="img" aria-label={`${r[1]} percent`} /><em>{r[1]}%</em>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div className="card" data-a="zoom" style={{ '--d': '.3s' }}><h3>Soft skills</h3><ul className="soft">{SOFT.map(s => <li key={s}>{s}</li>)}</ul></div>
+          </div>
+        </div></section>
+
+        <section className="s" id="education"><div className="wrap">
+          <h2 className="h2" data-a="up">Education &amp; training</h2>
+          <div className="ed">{ED.map((x, i) => <Entry key={x[0]} x={x} i={i} />)}</div>
+          <h3 className="sub" data-a="up">Certifications</h3>
+          <div className="cert">
+            {CERT.map((c, i) => <div className="card" data-a="up" style={{ '--d': `${i * 0.1}s` }} key={c[0]}><strong>{c[0]}</strong><span>{c[1]}</span></div>)}
+            <a className="card" href="#contact" data-a="up" style={{ '--d': '.2s', borderStyle: 'dashed' }}><strong>Add certification</strong><span>Contact to update</span></a>
+          </div>
+        </div></section>
+
+        <section className="s" id="projects"><div className="wrap">
+          <h2 className="h2" data-a="up">Selected projects</h2>
+          <div className="pj">{PJ.map((p, i) => (
+            <article className="card" data-a="zoom" style={{ '--d': `${(i % 2) * 0.12}s` }} key={p[0]}>
+              <div className="th" style={{ '--g': `linear-gradient(135deg,${p[3]})` }} />
+              <div className="pb"><h3>{p[0]}</h3><p>{p[1]}</p><Tags a={p[2]} /></div>
+            </article>
+          ))}</div>
+        </div></section>
+
+        <section className="s" id="contact"><div className="wrap">
+          <h2 className="h2" data-a="up">Let’s build something together</h2>
+          <div className="ct">
+            <div className="card" data-a="left">
+              <h3>Let’s connect</h3>
+              <p>I’m open to internships, freelance projects and collaborations. Reach out and I’ll reply soon.</p>
+              <ul>{CT.map(c => <li key={c[0]}><div><small>{c[0]}</small><Html h={c[1]} /></div></li>)}</ul>
+              <div className="soc"><a href="#" aria-label="GitHub">GitHub</a><a href="#" aria-label="LinkedIn">LinkedIn</a><a href="#" aria-label="Behance">Behance</a><a href="#" aria-label="Dribbble">Dribbble</a></div>
+            </div>
+            <ContactForm />
+          </div>
+        </div></section>
+      </main>
+
+      <footer><div className="wrap"><span>© 2026 John Lloyd. Calbayog City, Samar, PH.</span><a href="#home">Back to top ↑</a></div></footer>
+      <ChatWidget />
+    </>
+  )
 }
