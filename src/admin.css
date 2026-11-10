@@ -1,0 +1,60 @@
+.adm{min-height:100vh;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--fb)}
+.adm h1{font:800 1.9rem var(--fd);letter-spacing:-.03em;margin:0 0 20px}
+.adm h4{font:700 1rem var(--fd);margin:14px 0 8px}
+.adm .top{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:10px;padding:12px clamp(14px,3vw,28px);background:var(--sf);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.adm .sp{flex:1}
+.adm .btn{padding:9px 16px;border-radius:11px;font-size:14px;cursor:pointer}
+.adm .btn:disabled{opacity:.5;cursor:default;transform:none}
+.adm .body{display:grid;grid-template-columns:230px minmax(0,1fr);gap:28px;max-width:1100px;margin:0 auto;padding:28px clamp(14px,3vw,28px) 80px}
+.adm .tabs{display:flex;flex-direction:column;gap:2px;position:sticky;top:84px;align-self:start}
+.adm .tabs button{text-align:left;padding:9px 14px;border:0;border-radius:10px;background:none;color:var(--mute);font:500 14.5px var(--fb);cursor:pointer}
+.adm .tabs button:hover{color:var(--ink)}.adm .tabs button.on{background:var(--soft);color:var(--ink)}
+.adm .msg{min-height:24px;color:var(--ac);font-size:14.5px;margin:0 0 8px}
+.adm .fld{margin:0 0 14px}.adm .fld label{display:block;font-size:13.5px;font-weight:600;margin:0 0 5px}
+.adm .fld small,.adm .img small{color:var(--mute);font-weight:400;font-size:12.5px}
+.adm input:not([type=checkbox]):not([type=file]),.adm textarea{margin:0}
+.adm .ck{display:flex;align-items:center;gap:10px;margin:4px 0 14px;font-size:14.5px;font-weight:500}.adm .ck input{width:18px;height:18px;accent-color:var(--ac)}
+.adm .itm{border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:0 0 14px;background:var(--sf)}
+.adm .rh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.adm .rh span{display:flex;gap:6px}
+.adm .rh button{border:1px solid var(--line);background:none;color:var(--ink);border-radius:8px;padding:4px 10px;cursor:pointer;font:500 13px var(--fb)}
+.adm .rh button:disabled{opacity:.35}.adm .rh .del{color:#dc2626;border-color:color-mix(in srgb,#dc2626 40%,var(--line))}
+.adm .sub{border-left:3px solid var(--soft);padding-left:14px;margin:8px 0}
+.adm .add{width:100%;padding:12px;border:1.5px dashed var(--line);border-radius:14px;background:none;color:var(--ac);font:600 14.5px var(--fb);cursor:pointer}.adm .add:hover{border-color:var(--ac)}
+.adm .img{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}.adm .img input{margin-bottom:8px}
+.adm .thumb{aspect-ratio:1;border-radius:14px;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;font-size:12px;color:var(--mute);background:repeating-conic-gradient(var(--soft) 0 25%,transparent 0 50%) 0 0/16px 16px}.adm .thumb img{width:100%;height:100%;object-fit:contain}
+.adm .meta{color:var(--mute);font-size:14px;margin:0 0 8px}.adm .acts{display:flex;gap:10px;flex-wrap:wrap}
+.adm .bad{color:#dc2626;font-size:14px;min-height:22px}
+.adm.login{display:grid;place-items:center;padding:24px}.adm.login .card{width:min(420px,100%)}.adm.login .btn{width:100%;justify-content:center;margin-top:6px}.adm.login a{font-size:14px;color:var(--mute)}
+.adm code{background:var(--soft);padding:2px 6px;border-radius:6px;font-size:13px}
+
+/* isolation from the public site's global element rules (h1, label, input, nav…) */
+.adm h1{white-space:normal;font-size:clamp(1.5rem,5vw,1.9rem);line-height:1.1;overflow-wrap:anywhere}
+.adm input,.adm textarea{min-width:0;max-width:100%}
+.adm .ck input{padding:0;width:18px;height:18px;flex:none}
+.adm .acts .btn{margin:0;display:inline-flex}
+.adm label.btn{font-size:14px;font-weight:600}
+.adm .itm,.adm .fld,.adm main{min-width:0}
+.adm .rh b{min-width:0;overflow-wrap:anywhere}
+.adm .rh{flex-wrap:wrap}
+.adm .sub .itm{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:0 12px;padding:12px 14px}
+.adm .sub .itm .rh{grid-column:1/-1;margin-bottom:8px}
+.adm .sub .itm .fld{margin-bottom:6px}
+.adm .top .btn{white-space:nowrap}
+@media (max-width:860px){
+.adm .body{grid-template-columns:minmax(0,1fr);gap:12px;padding-top:16px}
+.adm .tabs{position:sticky;top:61px;z-index:9;flex-direction:row;overflow-x:auto;gap:4px;padding:8px 0;background:var(--bg);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.adm .tabs::-webkit-scrollbar{display:none}
+.adm .tabs button{white-space:nowrap;flex:none;border:1px solid var(--line);border-radius:999px;padding:8px 14px}
+.adm .tabs button.on{border-color:var(--ac)}
+.adm .img{grid-template-columns:96px minmax(0,1fr)}
+.adm .top{gap:8px}.adm .top strong{flex:1 1 100%}.adm .top .sp{display:none}.adm .top .btn{flex:1;justify-content:center;padding:9px 10px}
+}
+@media (max-width:520px){
+.adm .itm{padding:14px}
+.adm .sub .itm{grid-template-columns:minmax(0,1fr) 96px}
+.adm .rh span{width:100%;justify-content:flex-end}
+.adm .img{grid-template-columns:1fr}.adm .thumb{max-width:140px}
+.adm .acts .btn{flex:1;justify-content:center}
+.adm.login .card{padding:22px}
+}
